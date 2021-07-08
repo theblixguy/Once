@@ -16,6 +16,7 @@ func fetchUser(completion: @escaping (Result<User, Error>) -> Void) {
                  
     guard user.emailVerified else {
       completion(.failure(.userEmailNotVerified))
+      return
     }
                  
     if user.hasSubscription {
@@ -42,6 +43,7 @@ func fetchUser(@Once completion: @escaping (Result<User, Error>) -> Void) {
                  
     guard user.isPendingEmailVerification else {
       completion(.failure(.userNotVerified))
+      return
     }
                  
     if user.hasSubscription {
