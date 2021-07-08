@@ -14,16 +14,18 @@ func fetchUser(completion: @escaping (Result<User, Error>) -> Void) {
       return
     }
                  
-    guard let user.isPendingEmailVerification else {
-      completion(.failure(.userNotVerified))
+    guard user.emailVerified else {
+      completion(.failure(.userEmailNotVerified))
     }
                  
-    if user.hasPassedSecurityChecks {
-      completion(.success(user))
+    if user.hasSubscription {
+      if case let .ultimate = getSubscriptionType(user) {
+        completion(.success(user))
+      }
     }
     
     // oops, forgot a 'return' in the if-statement above, so execution continues and closure is called twice (and with an invalid result!).
-    completion(.failure(.userPendingSecurityChecks))
+    completion(.failure(.userNotSubscribedToUltimate))
 }
 ```
 
@@ -38,15 +40,17 @@ func fetchUser(@Once completion: @escaping (Result<User, Error>) -> Void) {
       return // runtime error: expected closure to have already been executed once!
     }
                  
-    guard let user.isPendingEmailVerification else {
+    guard user.isPendingEmailVerification else {
       completion(.failure(.userNotVerified))
     }
                  
-    if user.hasPassedSecurityChecks {
-      completion(.success(user))
+    if user.hasSubscription {
+      if case let .ultimate = getSubscriptionType(user) {
+        completion(.success(user))
+      }
     }
                  
-    completion(.failure(.userPendingSecurityChecks)) // runtime error: closure has already been invoked!
+    completion(.failure(.userNotSubscribedToUltimate)) // runtime error: closure has already been invoked!
   }
 }
 ```
