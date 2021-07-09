@@ -7,53 +7,70 @@ A property wrapper that allows you to enforce that a closure is called exactly o
 It’s very common to write code where you have a function with a completion handler which must be called with a success or failure value based on the underlying result of the work that the function does. But if you’re not careful, it can be easy to make mistakes where you don’t call the completion handler at all or call it more than once, especially if there’s complicated business logic or error handling.
 
 ```swift
-func fetchUser(completion: @escaping (Result<User, Error>) -> Void) {
+func fetchSpecialUser(@Once completion: @escaping (Result<User, Error>) -> Void) {
   fetchUserImpl { user in
     guard let user = user else {
       // oops, forgot to call completion(...) here!
       return
     }
                  
-    guard user.emailVerified else {
-      completion(.failure(.userEmailNotVerified))
-      return
-    }
-                 
-    if user.hasSubscription {
-      if case let .ultimate = getSubscriptionType(user) {
-        completion(.success(user))
-      }
-    }
-    
-    // oops, forgot a 'return' in the if-statement above, so execution continues and closure is called twice (and with an invalid result!).
-    completion(.failure(.userNotSubscribedToUltimate))
-}
-```
-
-## Usage
-
-Simply annotate your closure parameters with `@Once` and you will get a runtime error if the closure is not called at alll or called more than once.
-
-```swift
-func fetchUser(@Once completion: @escaping (Result<User, Error>) -> Void) {
-  fetchUserImpl { user in
-    guard let user = user else {
-      return // runtime error: expected closure to have already been executed once!
-    }
-                 
-    guard user.isPendingEmailVerification else {
+    guard user.isPendingEmailVerification == false else {
       completion(.failure(.userNotVerified))
       return
     }
                  
     if user.hasSubscription {
-      if case let .ultimate = getSubscriptionType(user) {
-        completion(.success(user))
+      switch getSubscriptionType(user) {
+        case .ultimate, .premium:
+          completion(.success(user))
+        case .standard:
+          completion(.failure(.noPaidSubscription))
       }
+    } else {
+      completion(.failure(.userNotSubbed))
     }
                  
-    completion(.failure(.userNotSubscribedToUltimate)) // runtime error: closure has already been invoked!
-  }
+    // ... more business logic here
+    
+    // oops, forgot a 'return' in the if-statement above, 
+    // so execution continues and closure is called twice 
+    // (and with an invalid result!).
+    completion(.failure(.generic))
+}
+```
+
+## Usage
+
+Simply annotate your function parameters with `@Once` and you will get a runtime error if the closure is not called at all or called more than once.
+
+```swift
+func fetchSpecialUser(@Once completion: @escaping (Result<User, Error>) -> Void) {
+  fetchUserImpl { user in
+    guard let user = user else {
+      // runtime error: expected closure to have already been executed once!
+      return
+    }
+                 
+    guard user.isPendingEmailVerification == false else {
+      completion(.failure(.userNotVerified))
+      return
+    }
+                 
+    if user.hasSubscription {
+      switch getSubscriptionType(user) {
+        case .ultimate, .premium:
+          completion(.success(user))
+        case .standard:
+          completion(.failure(.noPaidSubscription))
+      }
+    } else {
+      completion(.failure(.userNotSubbed))
+    }
+                 
+    // ... more business logic here
+    
+    // runtime error: closure has already been invoked!
+    completion(.failure(.generic))
 }
 ```
 
