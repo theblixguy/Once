@@ -26,8 +26,6 @@ func fetchSpecialUser(@Once completion: @escaping (Result<User, Error>) -> Void)
         case .standard:
           completion(.failure(.noPaidSubscription))
       }
-    } else {
-      completion(.failure(.userNotSubbed))
     }
                  
     // ... more business logic here
@@ -63,8 +61,6 @@ func fetchSpecialUser(@Once completion: @escaping (Result<User, Error>) -> Void)
         case .standard:
           completion(.failure(.noPaidSubscription))
       }
-    } else {
-      completion(.failure(.userNotSubbed))
     }
                  
     // ... more business logic here
